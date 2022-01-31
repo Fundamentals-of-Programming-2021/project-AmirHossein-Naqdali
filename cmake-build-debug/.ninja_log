@@ -1,0 +1,13 @@
+# ninja log v5
+0	96	6653515846635511	CMakeFiles/Project.dir/main.c.obj	24be6aa34c2176e7
+98	236	6653515847885544	Project.exe	13db72d8d7286bf0
+1	883	6653524067046204	CMakeFiles/Project.dir/src/main.c.obj	b49c5855dc455087
+885	1313	6653524071289218	Project.exe	4aaf2ba0a5ea2f3f
+2	658	6653524252778318	CMakeFiles/Project.dir/src/main.c.obj	b49c5855dc455087
+659	1415	6653524260243424	Project.exe	4aaf2ba0a5ea2f3f
+2	503	6653524641264050	CMakeFiles/Project.dir/src/main.c.obj	b49c5855dc455087
+504	1103	6653524647158245	Project.exe	4aaf2ba0a5ea2f3f
+3	643	6653526601371695	CMakeFiles/Project.dir/src/main.c.obj	b49c5855dc455087
+643	842	6653526603283049	Project.exe	4aaf2ba0a5ea2f3f
+2	670	6653537760581548	CMakeFiles/Project.dir/src/main.c.obj	b49c5855dc455087
+670	848	6653537762282770	Project.exe	4aaf2ba0a5ea2f3f
