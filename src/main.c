@@ -53,17 +53,63 @@ int main(){
     SDL_Window *window = SDL_CreateWindow("State.io", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                           SCREEN_WIDTH,SCREEN_HEIGHT, SDL_WINDOW_OPENGL|SDL_WINDOW_MOUSE_FOCUS);
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED);
-    SDL_Surface* surface = SDL_LoadBMP("..\\resources\\Background.bmp");
-    SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surface);
-    SDL_FreeSurface(surface);
+    //Loading background
+    SDL_Surface *surface = SDL_LoadBMP("..\\Resources\\Background.bmp");
+    SDL_Texture *back = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_free(surface);
+    surface = SDL_LoadBMP("..\\Resources\\Title.bmp");
+    SDL_Texture *title = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_free(surface);
+    surface = SDL_LoadBMP("..\\Resources\\Map1.bmp");
+    SDL_Texture *map1 = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_free(surface);
+    surface = SDL_LoadBMP("..\\Resources\\Map2.bmp");
+    SDL_Texture *map2 = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_free(surface);
+    surface = SDL_LoadBMP("..\\Resources\\Map Test.bmp");
+    SDL_Texture *map_test = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_free(surface);
+    surface = SDL_LoadBMP("..\\Resources\\Map Random.bmp");
+    SDL_Texture *map_random = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_free(surface);
     
     SDL_bool shall_exit = SDL_FALSE;
     while (shall_exit == SDL_FALSE){
         SDL_RenderClear(renderer);
+        SDL_Rect dest_title;
+        SDL_QueryTexture(title, NULL, NULL, &dest_title.w, &dest_title.h);
+        dest_title.x = (SCREEN_WIDTH - dest_title.w)/2;
+        dest_title.y = 35;
+        
+        SDL_Rect dest_map1;
+        SDL_QueryTexture(map1, NULL, NULL, &dest_map1.w, &dest_map1.h);
+        dest_map1.x = -170;
+        dest_map1.x = (SCREEN_WIDTH - dest_map1.w)/2 - 180;
+        dest_map1.y = dest_title.y -20;
+        
+        SDL_Rect dest_map2;
+        SDL_QueryTexture(map2, NULL, NULL, &dest_map2.w, &dest_map2.h);
+        dest_map2.x = (SCREEN_WIDTH - dest_map2.w)/2 + 180;
+        dest_map2.y = dest_title.y -20;
+    
+        SDL_Rect dest_map_test;
+        SDL_QueryTexture(map_test, NULL, NULL, &dest_map_test.w, &dest_map_test.h);
+        dest_map_test.x = (SCREEN_WIDTH - dest_map_test.w)/2;
+        dest_map_test.y = dest_title.y/2 + dest_map1.h/4 -20;
+    
+        SDL_Rect dest_map_random;
+        SDL_QueryTexture(map_random, NULL, NULL, &dest_map_random.w, &dest_map_random.h);
+        dest_map_random.x = (SCREEN_WIDTH - dest_map_random.w)/2;
+        dest_map_random.y = dest_title.y + dest_map2.h/3 + 35;
         
         //generating the map
-        SDL_RenderCopy(renderer, tex, NULL, NULL);
-        init_color(renderer, no_circle, no_is_available, circle);
+        SDL_RenderCopy(renderer, back, NULL, NULL);
+        SDL_RenderCopy(renderer, title, NULL, &dest_title);
+        SDL_RenderCopy(renderer, map1, NULL, &dest_map1);
+        SDL_RenderCopy(renderer, map2, NULL, &dest_map2);
+        SDL_RenderCopy(renderer, map_test, NULL, &dest_map_test);
+        SDL_RenderCopy(renderer, map_random, NULL, &dest_map_random);
+//        init_color(renderer, no_circle, no_is_available, circle);
         SDL_RenderPresent(renderer);
         
         //checking if the exit button is pushed
@@ -76,6 +122,7 @@ int main(){
             }
         }
     }
+    SDL_DestroyTexture(back);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
