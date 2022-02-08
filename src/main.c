@@ -3,7 +3,7 @@
 #ifdef main
 #undef main
 #endif
-//########################################################################################################################################################
+//Libraries###############################################################################################################################################
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -15,6 +15,7 @@
 #define FPS 60
 #define radius 75
 #define MAX_CIRCLE 15
+//colors:
 #define white 0xffffffff
 #define red_norm 0x660000ff
 #define red_bold 0x900000ff
@@ -40,26 +41,32 @@ void define_circle(int *no_circle, CIRCLE circle[], int *no_is_available);
 void draw_circle(SDL_Renderer *renderer, CIRCLE circle[], Uint32 color, Uint32 color2, int i); //i: number of the circle
 void init_color(SDL_Renderer *renderer, int no_circle, int no_is_available, CIRCLE circle[]);
 
-//########################################################################################################################################################
+//The main CODE###########################################################################################################################################
 int main(){
     int no_circle;
     CIRCLE circle[MAX_CIRCLE];
     int no_is_available;
     define_circle(&no_circle, circle, &no_is_available);
     
+    //SDL initialization & creating window and renderer
+    SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER);
     SDL_Window *window = SDL_CreateWindow("State.io", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                             SCREEN_WIDTH,SCREEN_HEIGHT, SDL_WINDOW_OPENGL|SDL_WINDOW_MOUSE_FOCUS);
+                                          SCREEN_WIDTH,SCREEN_HEIGHT, SDL_WINDOW_OPENGL|SDL_WINDOW_MOUSE_FOCUS);
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED);
+    SDL_Surface* surface = SDL_LoadBMP("..\\resources\\Background.bmp");
+    SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_FreeSurface(surface);
     
     SDL_bool shall_exit = SDL_FALSE;
-    while (shall_exit == SDL_FALSE) {
-        SDL_SetRenderDrawColor(renderer, 0xa6, 0xa6, 0xa6, 0x55);
+    while (shall_exit == SDL_FALSE){
         SDL_RenderClear(renderer);
-    
-        //rendering the map
+        
+        //generating the map
+        SDL_RenderCopy(renderer, tex, NULL, NULL);
         init_color(renderer, no_circle, no_is_available, circle);
         SDL_RenderPresent(renderer);
         
+        //checking if the exit button is pushed
         SDL_Event sdlEvent;
         while (SDL_PollEvent(&sdlEvent)) {
             switch (sdlEvent.type) {
@@ -69,8 +76,9 @@ int main(){
             }
         }
     }
+    SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
-    SDL_QUIT;
+    SDL_Quit();
     return 0;
 }
 
