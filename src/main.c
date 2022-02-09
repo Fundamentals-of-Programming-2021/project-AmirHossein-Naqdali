@@ -17,6 +17,7 @@
 #define MAX_CIRCLE 15
 //circle colors:
 #define white 0xffffffff
+#define not_conquered 0xcc262626
 #define red_norm 0x660000ff
 #define red_bold 0x900000ff
 #define blue_norm 0xbbffd480
@@ -34,10 +35,10 @@
 typedef struct{
     Sint16 x;
     Sint16 y;
-    Sint16 r;
     Uint32 color;
+    Uint32 center_color;
     bool is_available;
-}CIRCLE;
+}CIRCLE; //circle: barrack
 typedef struct{
     int x;
     int y;
@@ -49,14 +50,18 @@ typedef struct{
 typedef enum{Map1=1, Map2, Map_test, Map_random}MAP;
 
 //Function Prototypes#####################################################################################################################################
-void define_circle(int *no_circle, CIRCLE circle[], int *no_is_available); //defining number and position of circles in random maps
+void define_random(int *no_circle, CIRCLE circle[], int *no_is_available); //defining number and position of circles in random maps
+void define_test(int *no_circle, CIRCLE circle[], int *no_is_available); //defining position of the circles in memory-leak test map
+void define_map1(int *no_circle, CIRCLE circle[], int *no_is_available); //defining position of the circles in map1
+void define_map2(int *no_circle, CIRCLE circle[], int *no_is_available); //defining position of the circles in map2
 void draw_circle(SDL_Renderer *renderer, CIRCLE circle[], Uint32 color, Uint32 color2, int i); //i: number of the circle
-void init_color(SDL_Renderer *renderer, int no_circle, int no_is_available, CIRCLE circle[]);
+void init_color(SDL_Renderer *renderer, int no_circle, int no_is_available, CIRCLE circle[]); //coloring random mamp circles
 SDL_Texture* Texture(SDL_Renderer* renderer, char* address); //address: path of the image which is supposed to get loaded
-SDL_Rect Rect(SDL_Texture *tex, int x, int y, int w_decrement);
+SDL_Rect Rect(SDL_Texture *tex, int x, int y, int w_decrement); //defining a rect for texture rendering
 void menu_generator(SDL_Renderer *renderer, SDL_Texture *background, SDL_Texture *title,SDL_Texture *map1,SDL_Texture *map2,
-                    SDL_Texture *map_test, SDL_Texture *map_random, bool *exit, int *map_no, MAP map);
+                    SDL_Texture *map_test, SDL_Texture *map_random, bool *exit, int *map_no, MAP enum_map);
 void random_map_generator(SDL_Renderer *renderer, SDL_Texture *background, int no_circle, int no_is_available, CIRCLE circle[], bool *exit);
+void nonrandom_map_generator(SDL_Renderer *renderer, SDL_Texture *background, CIRCLE circle[], bool *exit, int no_circle);
 
 //The main CODE###########################################################################################################################################
 int main(){
@@ -86,7 +91,7 @@ int main(){
     while (!exit)
         menu_generator(renderer, background, title, map1, map2, map_test, map_random, &exit, &map_no, enum_map);
     
-    //destroying menu-related textures
+    //freeing menu-related textures
     SDL_DestroyTexture(title);
     SDL_DestroyTexture(map1);
     SDL_DestroyTexture(map2);
@@ -94,18 +99,26 @@ int main(){
     SDL_DestroyTexture(map_random);
     
     exit = false;
-    //selecting the selected map to get generated
+    //generating the selected map
     if(map_no==Map1){
-    
+        define_map1(&no_circle, circle, &no_is_available);
+        while(!exit)
+            nonrandom_map_generator(renderer, background, circle, &exit, no_circle);
     }else if(map_no==Map2){
-    
+        define_map2(&no_circle, circle, &no_is_available);
+        while(!exit)
+            nonrandom_map_generator(renderer, background, circle, &exit, no_circle);
     }else if(map_no==Map_test){
-    
+        define_test(&no_circle, circle, &no_is_available);
+        while(!exit)
+            nonrandom_map_generator(renderer, background, circle, &exit, no_circle);
     }else if(map_no==Map_random){
-        define_circle(&no_circle, circle, &no_is_available);
+        define_random(&no_circle, circle, &no_is_available);
         while(!exit)
             random_map_generator(renderer, background, no_circle, no_is_available, circle, &exit);
     }
+    
+    //freeing remaining things
     SDL_DestroyTexture(background);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
@@ -113,7 +126,7 @@ int main(){
     return 0;
 }
 
-void define_circle(int *no_circle, CIRCLE circle[], int *no_is_available){
+void define_random(int *no_circle, CIRCLE circle[], int *no_is_available){
     //number of circles
     *no_circle = rand()%4 + 9;
     //position of circles
@@ -148,6 +161,82 @@ void define_circle(int *no_circle, CIRCLE circle[], int *no_is_available){
         circle[i].is_available = false;
 }
 
+void define_test(int *no_circle, CIRCLE circle[], int *no_is_available){
+    *no_circle = *no_is_available = 13;
+    for(int i=0; i<5; i++){
+        circle[i].x = (i)*(2*radius+41) + 23 + radius;
+        circle[i].y = 32 + radius;
+        circle[i].is_available = true;
+        circle[i].color = red_norm;
+        circle[i].center_color = red_bold;
+    }
+    for(int i=5; i<8; i++){
+        circle[i].x = (i-5)*(2*radius+170) + 85 + radius;
+        circle[i].y = 3*radius + 63 + 32;
+        circle[i].is_available = true;
+        circle[i].color = red_norm;
+        circle[i].center_color = red_bold;
+    }
+    //enemy color
+    circle[6].color = blue_norm;
+    circle[6].center_color = blue_bold;
+    for(int i=8; i<13; i++){
+        circle[i].x = (i-8)*(2*radius+41) + 23 + radius;
+        circle[i].y = 2*(2*radius+63) + 32 + radius;
+        circle[i].is_available = true;
+        circle[i].color = red_norm;
+        circle[i].center_color = red_bold;
+    }
+}
+
+void define_map1(int *no_circle, CIRCLE circle[], int *no_is_available){
+    *no_circle = 9;
+    *no_is_available = 8;
+    for(int j=0; j<3; j++) {
+        for (int i = 0; i < 3; i++) {
+            circle[3 * j + i].x = (3 * j + i) % 3 * (2 * radius + 170) + 85 + radius;
+            circle[3 * j + i].y = ((3 * j + i)/3) * (2 * radius + 63) + 32 + radius;
+            circle[3 * j + i].is_available = true;
+            circle[3 * j + i].color = white;
+            circle[3 * j + i].center_color = not_conquered;
+        }
+    }
+    //setting color
+    circle[1].color = red_norm; circle[1].center_color = red_bold;
+    circle[4].color = not_available; circle[4].center_color = NULL; circle[4].is_available = false;
+    circle[6].color = blue_norm; circle[6].center_color = blue_bold;
+    circle[8].color = yellow_norm; circle[8].center_color = yellow_bold;
+}
+
+void define_map2(int *no_circle, CIRCLE circle[], int *no_is_available){
+    *no_circle = *no_is_available = 7;
+    for(int i=0; i<2; i++){
+        circle[i].x = (i)*(2*radius+490) + 85 + radius;
+        circle[i].y = 32 + radius;
+        circle[i].is_available = true;
+        circle[i].color = white;
+        circle[i].center_color = not_conquered;
+    }
+    for(int i=2; i<5; i++){
+        circle[i].x = (i-2)*(2*radius+170) + 85 + radius;
+        circle[i].y = 3*radius + 63 + 32;
+        circle[i].is_available = true;
+        circle[i].color = white;
+        circle[i].center_color = not_conquered;
+    }
+    for(int i=5; i<7; i++){
+        circle[i].x = (i-5)*(2*radius+490) + 85 + radius;
+        circle[i].y = 5*radius + 2*63 + 32;
+        circle[i].is_available = true;
+        circle[i].color = white;
+        circle[i].center_color = not_conquered;
+    }
+    //setting color
+    circle[1].color = blue_norm;   circle[1].center_color = blue_bold;
+    circle[3].color = red_norm;    circle[3].center_color = red_bold;
+    circle[5].color = yellow_norm; circle[5].center_color = yellow_bold;
+}
+
 void draw_circle(SDL_Renderer *renderer, CIRCLE circle[], Uint32 color, Uint32 color2, int i){
     filledCircleColor(renderer, circle[i].x, circle[i].y, radius, white);
     filledCircleColor(renderer, circle[i].x, circle[i].y, radius, color);
@@ -170,30 +259,35 @@ void init_color(SDL_Renderer *renderer, int no_circle, int no_is_available, CIRC
         no_is_unavailable++;
         draw_circle(renderer, circle, blue_norm, blue_bold, no_is_unavailable);
         circle[no_is_unavailable].color = blue_norm;
-    }
-    else if(no_is_available==6 || no_is_available==7 || no_is_available==8){
+        circle[no_is_unavailable].center_color = blue_bold;
+    }else if(no_is_available==6 || no_is_available==7 || no_is_available==8){
         no_is_unavailable++;
         draw_circle(renderer, circle, blue_norm, blue_bold, no_is_unavailable);
         circle[no_is_unavailable].color = blue_norm;
+        circle[no_is_unavailable].center_color = blue_bold;
         no_is_unavailable++;
         draw_circle(renderer, circle, yellow_norm, yellow_bold, no_is_unavailable);
         circle[no_is_unavailable].color = yellow_norm;
-    }
-    else{
+        circle[no_is_unavailable].center_color = yellow_bold;
+    }else{
         no_is_unavailable++;
         draw_circle(renderer, circle, blue_norm,blue_bold, no_is_unavailable);
         circle[no_is_unavailable].color = blue_norm;
+        circle[no_is_unavailable].center_color = blue_bold;
         no_is_unavailable++;
         draw_circle(renderer, circle, yellow_norm, yellow_bold, no_is_unavailable);
         circle[no_is_unavailable].color = yellow_norm;
+        circle[no_is_unavailable].center_color = yellow_bold;
         no_is_unavailable++;
         draw_circle(renderer, circle, green_norm, green_bold, no_is_unavailable);
         circle[no_is_unavailable].color = green_norm;
+        circle[no_is_unavailable].center_color = green_bold;
     }
     //circles which are not conquered yet
     for(int i=no_is_unavailable+1; i<no_circle; i++) {
-        draw_circle(renderer, circle, white, 0xcc262626, i);
+        draw_circle(renderer, circle, white, not_conquered, i);
         circle[i].color = white;
+        circle[i].center_color = not_conquered;
     }
 }
 
@@ -291,7 +385,27 @@ void random_map_generator(SDL_Renderer *renderer, SDL_Texture *background, int n
     init_color(renderer, no_circle, no_is_available, circle);
     SDL_RenderPresent(renderer);
     
-    //checking if the exit button is pushed or one of the maps are selected
+    //checking if the exit button is pushed
+    SDL_Event event;
+    while(SDL_PollEvent((&event))){
+        switch(event.type)
+            case SDL_QUIT:
+                *exit = true;
+        break;
+    }
+}
+
+void nonrandom_map_generator(SDL_Renderer *renderer, SDL_Texture *background, CIRCLE circle[], bool *exit, int no_circle){
+    //rendering background
+    SDL_RenderClear(renderer);
+    SDL_RenderCopy(renderer, background, NULL, NULL);
+    
+    //rendering circles
+    for(int i=0; i<no_circle; i++)
+        draw_circle(renderer, circle, circle[i].color, circle[i].center_color, i);
+    SDL_RenderPresent(renderer);
+    
+    //checking if the exit button is pushed
     SDL_Event event;
     while(SDL_PollEvent((&event))){
         switch(event.type)
