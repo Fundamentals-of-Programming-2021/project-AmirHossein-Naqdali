@@ -15,7 +15,7 @@
 #define FPS 60
 #define radius 75
 #define MAX_CIRCLE 15
-//colors:
+//circle colors:
 #define white 0xffffffff
 #define red_norm 0x660000ff
 #define red_bold 0x900000ff
@@ -26,6 +26,9 @@
 #define green_norm 0xdd80ffaa
 #define green_bold 0xff00e64c
 #define not_available 0xbb4d4d4d
+//menu:
+#define button_radius 20
+#define button_color 0xffff3333
 
 //Structs & Unions########################################################################################################################################
 typedef struct{
@@ -35,94 +38,75 @@ typedef struct{
     Uint32 color;
     bool is_available;
 }CIRCLE;
+typedef struct{
+    int x;
+    int y;
+}menu_select_button;
+typedef struct{
+    int x;
+    int y;
+}MOUSE;
+typedef enum{Map1=1, Map2, Map_test, Map_random}MAP;
 
 //Function Prototypes#####################################################################################################################################
-void define_circle(int *no_circle, CIRCLE circle[], int *no_is_available);
+void define_circle(int *no_circle, CIRCLE circle[], int *no_is_available); //defining number and position of circles in random maps
 void draw_circle(SDL_Renderer *renderer, CIRCLE circle[], Uint32 color, Uint32 color2, int i); //i: number of the circle
 void init_color(SDL_Renderer *renderer, int no_circle, int no_is_available, CIRCLE circle[]);
+SDL_Texture* Texture(SDL_Renderer* renderer, char* address); //address: path of the image which is supposed to get loaded
+SDL_Rect Rect(SDL_Texture *tex, int x, int y, int w_decrement);
+void menu_generator(SDL_Renderer *renderer, SDL_Texture *background, SDL_Texture *title,SDL_Texture *map1,SDL_Texture *map2,
+                    SDL_Texture *map_test, SDL_Texture *map_random, bool *exit, int *map_no, MAP map);
+void random_map_generator(SDL_Renderer *renderer, SDL_Texture *background, int no_circle, int no_is_available, CIRCLE circle[], bool *exit);
 
 //The main CODE###########################################################################################################################################
 int main(){
-    int no_circle;
+    int no_circle; //number of circles
+    int no_is_available; //number of available circles
+    int map_no; MAP enum_map;  //which map is supposed to get generated
     CIRCLE circle[MAX_CIRCLE];
-    int no_is_available;
-    define_circle(&no_circle, circle, &no_is_available);
+    srand(time(NULL));
     
     //SDL initialization & creating window and renderer
     SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER);
     SDL_Window *window = SDL_CreateWindow("State.io", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                           SCREEN_WIDTH,SCREEN_HEIGHT, SDL_WINDOW_OPENGL|SDL_WINDOW_MOUSE_FOCUS);
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED);
+    
     //Loading background
-    SDL_Surface *surface = SDL_LoadBMP("..\\Resources\\Background.bmp");
-    SDL_Texture *back = SDL_CreateTextureFromSurface(renderer, surface);
-    SDL_free(surface);
-    surface = SDL_LoadBMP("..\\Resources\\Title.bmp");
-    SDL_Texture *title = SDL_CreateTextureFromSurface(renderer, surface);
-    SDL_free(surface);
-    surface = SDL_LoadBMP("..\\Resources\\Map1.bmp");
-    SDL_Texture *map1 = SDL_CreateTextureFromSurface(renderer, surface);
-    SDL_free(surface);
-    surface = SDL_LoadBMP("..\\Resources\\Map2.bmp");
-    SDL_Texture *map2 = SDL_CreateTextureFromSurface(renderer, surface);
-    SDL_free(surface);
-    surface = SDL_LoadBMP("..\\Resources\\Map Test.bmp");
-    SDL_Texture *map_test = SDL_CreateTextureFromSurface(renderer, surface);
-    SDL_free(surface);
-    surface = SDL_LoadBMP("..\\Resources\\Map Random.bmp");
-    SDL_Texture *map_random = SDL_CreateTextureFromSurface(renderer, surface);
-    SDL_free(surface);
+    SDL_Texture *background = Texture(renderer, "..\\Resources\\Background.bmp");
+    //Loading images for menu generating
+    SDL_Texture *title = Texture(renderer, "..\\Resources\\Title.bmp");
+    SDL_Texture *map1 = Texture(renderer, "..\\Resources\\Map1.bmp");
+    SDL_Texture *map2 = Texture(renderer, "..\\Resources\\Map2.bmp");
+    SDL_Texture *map_test = Texture(renderer, "..\\Resources\\Map Test.bmp");
+    SDL_Texture *map_random = Texture(renderer, "..\\Resources\\Map Random.bmp");
     
-    SDL_bool shall_exit = SDL_FALSE;
-    while (shall_exit == SDL_FALSE){
-        SDL_RenderClear(renderer);
-        SDL_Rect dest_title;
-        SDL_QueryTexture(title, NULL, NULL, &dest_title.w, &dest_title.h);
-        dest_title.x = (SCREEN_WIDTH - dest_title.w)/2;
-        dest_title.y = 35;
-        
-        SDL_Rect dest_map1;
-        SDL_QueryTexture(map1, NULL, NULL, &dest_map1.w, &dest_map1.h);
-        dest_map1.x = -170;
-        dest_map1.x = (SCREEN_WIDTH - dest_map1.w)/2 - 180;
-        dest_map1.y = dest_title.y -20;
-        
-        SDL_Rect dest_map2;
-        SDL_QueryTexture(map2, NULL, NULL, &dest_map2.w, &dest_map2.h);
-        dest_map2.x = (SCREEN_WIDTH - dest_map2.w)/2 + 180;
-        dest_map2.y = dest_title.y -20;
+    //generating menu
+    bool exit = false;
+    while (!exit)
+        menu_generator(renderer, background, title, map1, map2, map_test, map_random, &exit, &map_no, enum_map);
     
-        SDL_Rect dest_map_test;
-        SDL_QueryTexture(map_test, NULL, NULL, &dest_map_test.w, &dest_map_test.h);
-        dest_map_test.x = (SCREEN_WIDTH - dest_map_test.w)/2;
-        dest_map_test.y = dest_title.y/2 + dest_map1.h/4 -20;
+    //destroying menu-related textures
+    SDL_DestroyTexture(title);
+    SDL_DestroyTexture(map1);
+    SDL_DestroyTexture(map2);
+    SDL_DestroyTexture(map_test);
+    SDL_DestroyTexture(map_random);
     
-        SDL_Rect dest_map_random;
-        SDL_QueryTexture(map_random, NULL, NULL, &dest_map_random.w, &dest_map_random.h);
-        dest_map_random.x = (SCREEN_WIDTH - dest_map_random.w)/2;
-        dest_map_random.y = dest_title.y + dest_map2.h/3 + 35;
-        
-        //generating the map
-        SDL_RenderCopy(renderer, back, NULL, NULL);
-        SDL_RenderCopy(renderer, title, NULL, &dest_title);
-        SDL_RenderCopy(renderer, map1, NULL, &dest_map1);
-        SDL_RenderCopy(renderer, map2, NULL, &dest_map2);
-        SDL_RenderCopy(renderer, map_test, NULL, &dest_map_test);
-        SDL_RenderCopy(renderer, map_random, NULL, &dest_map_random);
-//        init_color(renderer, no_circle, no_is_available, circle);
-        SDL_RenderPresent(renderer);
-        
-        //checking if the exit button is pushed
-        SDL_Event sdlEvent;
-        while (SDL_PollEvent(&sdlEvent)) {
-            switch (sdlEvent.type) {
-                case SDL_QUIT:
-                    shall_exit = SDL_TRUE;
-                    break;
-            }
-        }
+    exit = false;
+    //selecting the selected map to get generated
+    if(map_no==Map1){
+    
+    }else if(map_no==Map2){
+    
+    }else if(map_no==Map_test){
+    
+    }else if(map_no==Map_random){
+        define_circle(&no_circle, circle, &no_is_available);
+        while(!exit)
+            random_map_generator(renderer, background, no_circle, no_is_available, circle, &exit);
     }
-    SDL_DestroyTexture(back);
+    SDL_DestroyTexture(background);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
@@ -130,12 +114,11 @@ int main(){
 }
 
 void define_circle(int *no_circle, CIRCLE circle[], int *no_is_available){
-    srand(time(0));
+    //number of circles
     *no_circle = rand()%4 + 9;
-    int no_is_unavailable=0;
+    //position of circles
     for(int i=0; i<*no_circle; i++){
         bool conflict = false;
-        srand(100000*(i+1)*time(0));
         circle[i].x=rand()%760+100;
         circle[i].y=rand()%440+100;
         long long multip=9;
@@ -147,7 +130,6 @@ void define_circle(int *no_circle, CIRCLE circle[], int *no_is_available){
                 }
             }
             if(conflict == true){
-                srand(100000000*(i+8)*time(0));
                 circle[i].x = abs(circle[i].x * circle[i].x * rand() * multip * multip+ rand()) %760 + 100;
                 circle[i].y = abs(circle[i].y * circle[i].y * rand() * multip * multip+ rand()) %440 + 100;
                 conflict = false;
@@ -158,7 +140,8 @@ void define_circle(int *no_circle, CIRCLE circle[], int *no_is_available){
         }
         circle[i].is_available = true;
     }
-    srand(800000000*time(0));
+    //state(available or unavailable) of circles
+    int no_is_unavailable=0;
     no_is_unavailable = rand()%4 +1;
     *no_is_available = *no_circle - no_is_unavailable;
     for(int i=0; i<no_is_unavailable; i++)
@@ -211,5 +194,109 @@ void init_color(SDL_Renderer *renderer, int no_circle, int no_is_available, CIRC
     for(int i=no_is_unavailable+1; i<no_circle; i++) {
         draw_circle(renderer, circle, white, 0xcc262626, i);
         circle[i].color = white;
+    }
+}
+
+SDL_Texture* Texture(SDL_Renderer *renderer, char *address){
+    SDL_Surface *surface = SDL_LoadBMP(address);
+    SDL_Texture *tex = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_free(surface);
+    return tex;
+}
+
+SDL_Rect Rect(SDL_Texture *tex, int x, int y, int w_decrement){
+    SDL_Rect rect;
+    SDL_QueryTexture(tex, NULL, NULL, &rect.w, &rect.h);
+    rect.x = x;
+    rect.w -= w_decrement;
+    rect.y = y;
+    return rect;
+}
+
+void menu_generator(SDL_Renderer *renderer, SDL_Texture *background, SDL_Texture *title,SDL_Texture *map1,
+                    SDL_Texture *map2, SDL_Texture *map_test, SDL_Texture *map_random, bool *exit, int *map_no, MAP enum_map){
+    
+    //rendering background
+    SDL_RenderClear(renderer);
+    SDL_RenderCopy(renderer, background, NULL, NULL);
+    
+    //calculating textures' dimensions and positions for rendering them
+    SDL_Rect dest_title = Rect(title, (SCREEN_WIDTH - dest_title.w)/2, 35, 0);
+    SDL_Rect dest_map1 = Rect(map1, (SCREEN_WIDTH - dest_map1.w)/2 - 130, dest_title.y -20, 100);
+    SDL_Rect dest_map2 = Rect(map2, (SCREEN_WIDTH - dest_map2.w)/2 + 190, dest_title.y -20, 100);
+    SDL_Rect dest_map_test = Rect(map_test, (SCREEN_WIDTH - dest_map_test.w)/2 + 30, dest_title.y/2 + dest_map1.h/4 -40, 100);
+    SDL_Rect dest_map_random = Rect(map1, (SCREEN_WIDTH - dest_map_random.w)/2 + 35, dest_title.y + dest_map2.h/3 + 5, 100);
+    
+    //defining select buttons' positions
+    menu_select_button select_map1 = {dest_map1.w/2-170, dest_map1.h/2};
+    menu_select_button select_map2 = {dest_map2.w/2+140, dest_map1.h/2};
+    menu_select_button select_map_test = {dest_map_test.w/2-90, dest_map_test.h/2+110};
+    menu_select_button select_map_random = {dest_map_random.w/2-135, dest_map_random.h/2+220};
+    
+    //generating the map
+    SDL_RenderCopy(renderer, title, NULL, &dest_title);
+    SDL_RenderCopy(renderer, map1, NULL, &dest_map1);
+    filledCircleColor(renderer, select_map1.x, select_map1.y, button_radius, button_color);
+    SDL_RenderCopy(renderer, map2, NULL, &dest_map2);
+    filledCircleColor(renderer, select_map2.x, select_map2.y, button_radius, button_color);
+    SDL_RenderCopy(renderer, map_test, NULL, &dest_map_test);
+    filledCircleColor(renderer, select_map_test.x, select_map_test.y, button_radius, button_color);
+    SDL_RenderCopy(renderer, map_random, NULL, &dest_map_random);
+    filledCircleColor(renderer, select_map_random.x, select_map_random.y, button_radius, button_color);
+    SDL_RenderPresent(renderer);
+    
+    //getting cursor position
+    MOUSE mouse;
+    SDL_GetMouseState(&mouse.x, &mouse.y);
+    
+    //calculating select buttons' distances from cursor
+    int distance1 = (mouse.x-select_map1.x)*(mouse.x-select_map1.x) + (mouse.y-select_map1.y)*(mouse.y-select_map1.y);
+    int distance2 = (mouse.x-select_map2.x)*(mouse.x-select_map2.x) + (mouse.y-select_map2.y)*(mouse.y-select_map2.y);
+    int distance3 = (mouse.x-select_map_test.x)*(mouse.x-select_map_test.x) + (mouse.y-select_map_test.y)*(mouse.y-select_map_test.y);
+    int distance4 = (mouse.x-select_map_random.x)*(mouse.x-select_map_random.x) + (mouse.y-select_map_random.y)*(mouse.y-select_map_random.y);
+    
+    //checking if the exit button is pushed or one of the maps are selected
+    SDL_Event event;
+    while(SDL_PollEvent((&event))){
+        switch(event.type){
+            case SDL_MOUSEBUTTONDOWN:
+                if(distance1 <= 400) {
+                    *map_no = Map1;
+                    *exit = true;
+                }else if(distance2 <= 400) {
+                    *map_no = Map2;
+                    *exit = true;
+                }else if(distance3 <= 400) {
+                    *map_no = Map_test;
+                    *exit = true;
+                }else if(distance4 <= 400) {
+                    *map_no = Map_random;
+                    *exit = true;
+                }
+                break;
+            case SDL_QUIT:
+                *exit = true;
+                break;
+        }
+    }
+}
+
+void random_map_generator(SDL_Renderer *renderer, SDL_Texture *background, int no_circle, int no_is_available, CIRCLE circle[], bool *exit){
+    
+    //rendering background
+    SDL_RenderClear(renderer);
+    SDL_RenderCopy(renderer, background, NULL, NULL);
+    
+    //generating random map
+    init_color(renderer, no_circle, no_is_available, circle);
+    SDL_RenderPresent(renderer);
+    
+    //checking if the exit button is pushed or one of the maps are selected
+    SDL_Event event;
+    while(SDL_PollEvent((&event))){
+        switch(event.type)
+            case SDL_QUIT:
+                *exit = true;
+        break;
     }
 }
