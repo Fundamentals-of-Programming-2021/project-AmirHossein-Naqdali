@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <time.h>
+#include <math.h>
 
 //Macros##################################################################################################################################################
 #define SCREEN_WIDTH 960
@@ -32,7 +33,7 @@
 #define not_available 0xbb4d4d4d
 //soldiers:
 #define MAX_SOLDIERS 10
-#define PRODUCING_PERIOD 20 //producing 1 soldier in 10
+#define PRODUCING_PERIOD 30 //producing 1 soldier in 20 renderings(maybe!)
 
 //Structs & Unions########################################################################################################################################
 typedef struct{
@@ -151,7 +152,7 @@ void menu_generator(SDL_Renderer *renderer, SDL_Texture *background, SDL_Texture
         //rendering background
         SDL_RenderClear(renderer);
         SDL_RenderCopy(renderer, background, NULL, NULL);
-    
+        
         //calculating textures' dimensions and positions for rendering them
         SDL_Rect dest_title = Rect(title, (SCREEN_WIDTH - dest_title.w) / 2, 35, 0);
         SDL_Rect dest_map1 = Rect(map1, (SCREEN_WIDTH - dest_map1.w) / 2 - 130, dest_title.y - 20, 100);
@@ -160,13 +161,13 @@ void menu_generator(SDL_Renderer *renderer, SDL_Texture *background, SDL_Texture
                                       dest_title.y / 2 + dest_map1.h / 4 - 40, 100);
         SDL_Rect dest_map_random = Rect(map1, (SCREEN_WIDTH - dest_map_random.w) / 2 + 35,
                                         dest_title.y + dest_map2.h / 3 + 5, 100);
-    
+        
         //defining select buttons' positions
         menu_select_button select_map1 = {dest_map1.w / 2 - 170, dest_map1.h / 2};
         menu_select_button select_map2 = {dest_map2.w / 2 + 140, dest_map1.h / 2};
         menu_select_button select_map_test = {dest_map_test.w / 2 - 90, dest_map_test.h / 2 + 110};
         menu_select_button select_map_random = {dest_map_random.w / 2 - 135, dest_map_random.h / 2 + 220};
-    
+        
         //generating the map
         SDL_RenderCopy(renderer, title, NULL, &dest_title);
         SDL_RenderCopy(renderer, map1, NULL, &dest_map1);
@@ -178,17 +179,17 @@ void menu_generator(SDL_Renderer *renderer, SDL_Texture *background, SDL_Texture
         SDL_RenderCopy(renderer, map_random, NULL, &dest_map_random);
         filledCircleColor(renderer, select_map_random.x, select_map_random.y, button_radius, button_color);
         SDL_RenderPresent(renderer);
-    
+        
         //getting cursor position
         MOUSE mouse;
         SDL_GetMouseState(&mouse.x, &mouse.y);
-    
+        
         //calculating select buttons' distances from cursor
         int distance1 = distance(mouse.x, mouse.y, select_map1.x, select_map1.y);
         int distance2 = distance(mouse.x, mouse.y, select_map2.x, select_map2.y);
         int distance3 = distance(mouse.x, mouse.y, select_map_test.x, select_map_test.y);
         int distance4 = distance(mouse.x, mouse.y, select_map_random.x, select_map_random.y);
-    
+        
         //checking if the exit button is pushed or one of the maps are selected
         SDL_Event event;
         while (SDL_PollEvent((&event))) {
@@ -418,70 +419,14 @@ void soldiers_no_rendering(SDL_Renderer *renderer, int no_circle, CIRCLE circle[
     }
 }
 
-void map_generator(SDL_Renderer *renderer, SDL_Texture *background, CIRCLE circle[], int no_circle, int orig, int dest){
-    int condition = 1; //to check if both origin and dest are taken
-    while(true){
-        //rendering background
-        SDL_RenderClear(renderer);
-        SDL_RenderCopy(renderer, background, NULL, NULL);
-        
-        //rendering circles
-        for(int i=0; i<no_circle; i++)
-            draw_circle(renderer, circle, circle[i].color, circle[i].center_color, i);
-        soldiers_no_rendering(renderer, no_circle, circle);
-        SDL_RenderPresent(renderer);
-        
-        //getting cursor position
-        MOUSE mouse;
-        
-        //producing soldiers in circles
-        for(int i=0; i<no_circle; i++){
-            if(circle[i].center_color!=not_conquered && circle[i].no_soldiers<MAX_SOLDIERS) {
-                circle[i].produce += 1.f / PRODUCING_PERIOD;
-                if(circle[i].produce>=1){
-                    circle[i].no_soldiers++;
-                    circle[i].produce--;
-                }
-            }
-            else
-                circle[i].produce = 0;
-        }
-        
-        //update soldier numbers and circle colors after movement
-        soldier_update(&orig, &dest, circle, condition);
-        
-        //checking if the exit button is pushed or if we want to move soldiers
-        SDL_Event event;
-        while(SDL_PollEvent((&event))){
-            switch(event.type){
-                case SDL_MOUSEBUTTONDOWN:
-                    SDL_GetMouseState(&mouse.x, &mouse.y);
-                    orig = which_circle_origin(circle, no_circle, mouse);
-                    condition=0;
-                    printf("orig:%d\n", orig);
-                    break;
-                case SDL_MOUSEBUTTONUP:
-                    SDL_GetMouseState(&mouse.x, &mouse.y);
-                    dest = which_circle_destination(circle, no_circle, mouse);
-                    condition=1;
-                    printf("dest:%d\n", dest);
-                    break;
-                case SDL_QUIT:
-                    return;
-            }
-        }
-        SDL_Delay(1000/FPS);
-    }
-}
-
 int distance(int x1, int y1, int x2, int y2){
-   return (x1-x2)*(x1-x2) + (y1-y2)*(y1-y2);
+    return (x1-x2)*(x1-x2) + (y1-y2)*(y1-y2);
 }
 
 int which_circle_origin(CIRCLE circle[], int no_circle, MOUSE mouse){
     for(int i=0; i<no_circle; i++){
         if(distance(mouse.x, mouse.y, circle[i].x, circle[i].y) <= 450){
-            if(circle[i].color==red_norm)
+            if(circle[i].color==red_norm || circle[i].color==blue_norm || circle[i].color==yellow_norm || circle[i].color==green_norm)
                 return i;
         }
     }
@@ -498,15 +443,66 @@ int which_circle_destination(CIRCLE circle[], int no_circle, MOUSE mouse){
     return -1;
 }
 
+void map_generator(SDL_Renderer *renderer, SDL_Texture *background, CIRCLE circle[], int no_circle, int orig, int dest){
+    int condition = 1; //to check if both origin and dest are taken
+    while(true){
+        //rendering background
+        SDL_RenderClear(renderer);
+        SDL_RenderCopy(renderer, background, NULL, NULL);
+        
+        //rendering circles
+        for(int i=0; i<no_circle; i++)
+            draw_circle(renderer, circle, circle[i].color, circle[i].center_color, i);
+        soldiers_no_rendering(renderer, no_circle, circle);
+        SDL_RenderPresent(renderer);
+        
+        soldier_update(&orig, &dest, circle, condition);
+        //getting cursor position
+        MOUSE mouse;
+        
+        //producing soldiers in circles
+        for(int i=0; i<no_circle; i++){
+            if(circle[i].center_color!=not_conquered && circle[i].no_soldiers<MAX_SOLDIERS) {
+                circle[i].produce += 1.f / PRODUCING_PERIOD;
+                if(circle[i].produce>=1){
+                    circle[i].no_soldiers++;
+                    circle[i].produce--;
+                }
+            }
+            else
+                circle[i].produce = 0;
+        }
+        
+        //checking if the exit button is pushed or if we want to move soldiers
+        SDL_Event event;
+        while(SDL_PollEvent((&event))){
+            switch(event.type){
+                case SDL_MOUSEBUTTONDOWN:
+                    SDL_GetMouseState(&mouse.x, &mouse.y);
+                    orig = which_circle_origin(circle, no_circle, mouse);
+                    condition=0;
+                    break;
+                case SDL_MOUSEBUTTONUP:
+                    SDL_GetMouseState(&mouse.x, &mouse.y);
+                    dest = which_circle_destination(circle, no_circle, mouse);
+                    condition=1;
+                    break;
+                case SDL_QUIT:
+                    return;
+            }
+        }
+        SDL_Delay(1000/FPS);
+    }
+}
+
 void soldier_update(int *orig, int *dest, CIRCLE circle[], int condition){
     if(condition && *orig>=0 && *dest>=0 && *orig!=*dest){
-        printf("before: orig:%d, dest:%d\n", circle[*orig].no_soldiers, circle[*dest].no_soldiers);
-        if(circle[*orig].color == circle[*dest].color){ //circles of the same color
-            circle[*dest].no_soldiers += circle[*orig].no_soldiers;
-            circle[*orig].no_soldiers = 0;
-        }else{ //circles of different colors
-            circle[*dest].no_soldiers -= circle[*orig].no_soldiers;
-            circle[*orig].no_soldiers = 0;
+        int temp = circle[*orig].no_soldiers;
+        circle[*orig].no_soldiers = 0;
+        if(circle[*orig].color == circle[*dest].color) //circles of the same color
+            circle[*dest].no_soldiers += temp;
+        else{ //circles of different colors
+            circle[*dest].no_soldiers -= temp;
             if(circle[*dest].no_soldiers < 0){ //if destination circle is conquered
                 circle[*dest].no_soldiers *= (-1);
                 circle[*dest].color = circle[*orig].color;
@@ -528,7 +524,6 @@ void soldier_update(int *orig, int *dest, CIRCLE circle[], int condition){
                 }
             }
         }
-        printf("after: orig:%d, dest:%d\n", circle[*orig].no_soldiers, circle[*dest].no_soldiers);
         //changing orig and dest to their primitive amounts
         *orig=-1, *dest=-1;
     }
